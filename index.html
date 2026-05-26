@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MenosTime</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+:root {
+  /* elemento raíz del documento */
+  --pincipal_fondo: #0a0e1a;
+  --fd_dos: #1a1f2e;
+  --fd_tres: #252b3d;
+  --fd_acento: #2d3548;
+
+  --az_electri: #00d4ff;
+  --az_electri_lm: #33ddff;
+  --az_electri_lmm: rgba(0, 212, 255, 0.3);
+
+  --text_uno: #ffffff;
+  --text_dos: #b8c5d6;
+  --text_apa: #8a9bb0;
+
+  --brd_color: #3a4556;
+
+  --sbra_lg: rgba(0, 212, 255, 0.1);
+  --sbra_md: rgba(0, 212, 255, 0.2);
+  --sbra_psd: rgba(0, 212, 255, 0.3);
+
+  --bdr_rdo: 12px;
+  --bdr_rdo_pqñ: 8px;
+  --spciad_xs: 0.5rem;
+  --spciad_sm: 1rem;
+  --spciad_md: 1.5rem;
+  --spciad_lg: 2rem;
+  --spciad_xl: 3rem;
+
+  --tarj_fd: var(--fd_dos);
+  --sbr_tarj: 0 4px 20px var(--sbra_lg);
+  --sbr_tarj_hover: 0 10px 30px var(--sbra_md);
+
+  --trasi: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box; /* incluye borde y padding en el tamaño */
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(
+    135deg,
+    var(--pincipal_fondo) 0%,
+    var(--fd_dos) 100%
+  );
+  color: var(--text_uno);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden; /* evita scroll horizontal */
+}
+
+.login{position:fixed;inset:0;display:flex;justify-content:center;align-items:center;background:transparent}
+.card{width:380px;background:var(--tarj_fd);padding:24px;border-radius:12px;border:1px solid var(--brd_color);box-shadow:var(--sbr_tarj)}
+.card h2{margin-bottom:18px;color:var(--az_electri)}
+.login input{width:100%;padding:12px;background:var(--fd_tres);border:1px solid var(--brd_color);outline:none;color:var(--text_uno);border-radius:10px;margin-bottom:12px}
+.login button{width:100%}
+.container{display:flex;height:100vh}
+.sidebar{width:300px;background:var(--fd_dos);border-right:1px solid var(--brd_color);display:flex;flex-direction:column}
+.top-buttons{padding:14px;display:flex;flex-direction:column;gap:10px}
+.server-list{flex:1;overflow:auto;padding:12px}
+.server{background:var(--tarj_fd);padding:12px;border-radius:10px;margin-bottom:10px;cursor:pointer;transition:var(--trasi);border:1px solid var(--brd_color)}
+.server:hover{box-shadow:var(--sbr_tarj_hover);border-color:var(--az_electri)}
+.user-box{padding:15px;background:var(--fd_acento);border-top:1px solid var(--brd_color)}
+.chat{flex:1;display:flex;flex-direction:column}
+.chat-header{height:70px;background:var(--fd_dos);border-bottom:1px solid var(--brd_color);display:flex;align-items:center;padding:0 20px;font-weight:700;gap:12px}
+.chat-box{flex:1;overflow:auto;padding:20px;background:linear-gradient(180deg,var(--pincipal_fondo),rgba(0,0,0,0.02))}
+.msg{background:var(--fd_tres);padding:12px;border-radius:10px;margin-bottom:12px;border:1px solid var(--brd_color)}
+.msg-user{font-weight:700;color:var(--az_electri);margin-bottom:6px}
+.msg-time{font-size:12px;color:var(--text_apa);margin-top:6px}
+.input-area{padding:14px;background:var(--fd_dos);display:flex;gap:10px;align-items:center;border-top:1px solid var(--brd_color)}
+.input-area input[type="text"], .input-area input[type="file"]{padding:12px;border-radius:8px;border:1px solid var(--brd_color);background:var(--fd_tres);color:var(--text_uno)}
+.input-area input[type="text"]{flex:1}
+button{background:linear-gradient(135deg,var(--az_electri),var(--az_electri_lm));border:none;padding:10px 14px;font-weight:700;cursor:pointer;border-radius:10px;transition:var(--trasi);color:var(--pincipal_fondo)}
+button:hover{transform:translateY(-2px)}
+
+.preview-card{display:flex;gap:12px;padding:10px;border-radius:8px;background:var(--fd_dos);border:1px solid var(--brd_color);margin-top:8px}
+.preview-card img{width:88px;height:56px;object-fit:cover;border-radius:6px}
+.preview-card .meta{display:flex;flex-direction:column;gap:6px}
+.reactions{display:flex;gap:8px;margin-top:8px}
+.reaction{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
+
+/* small helpers */
+.typing-indicator{color:var(--text_apa);font-size:0.9rem}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login" id="loginPage">
+  <div class="card">
+    <h2>MenosTime</h2>
+    <input id="username" placeholder="Tu nombre">
+    <input id="password" type="password" placeholder="Contraseña (obligatoria)">
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button onclick="login()" style="flex:1">Entrar</button>
+      <button onclick="registerWithPassword()" style="flex:1;background:#0bbd66">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="container" id="app" style="display:none">
+  <div class="sidebar">
+    <div class="top-buttons">
+      <button onclick="createServer()">+ Crear servidor</button>
+      <button onclick="joinServer()">+ Unirse</button>
+    </div>
+    <div class="server-list" id="servers"></div>
+    <div class="user-box">
+      <div id="userText"></div>
+      <button style="margin-top:10px;width:100%" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat">
+    <div class="chat-header" id="serverTitle">Selecciona un servidor</div>
+      <div id="typingIndicator" class="typing-indicator"></div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="input-area">
+      <input id="messageInput" type="text" placeholder="Escribe un mensaje..." onkeydown="enterSend(event)">
+      <input type="file" id="fileInput" onchange="uploadFile(this)" style="width:240px">
+      <button onclick="sendMessage()">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Supabase config (anon key incluida para demo; reemplaza por la tuya si quieres) */
+const SUPABASE_URL = "https://irqnbcrlkrkqbhrhlnrp.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlycW5iY3Jsa3JrcWJocmhsbnJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjMwNDgsImV4cCI6MjA5NTM5OTA0OH0._Ulkj6OXWdmLzZWoptFUK-WRtw1qxatwEp34DUgA03c";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* Helpers */
+async function sha256(text){
+  const enc = new TextEncoder();
+  const data = enc.encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+let currentUser = null;
+let currentServer = null;
+let messageChannel = null;
+let typingTimer = null;
+let typingState = false;
+
+function initFromSession(){
+  const s = sessionStorage.getItem('mt_user');
+  if(s){
+    try{ currentUser = JSON.parse(s); } catch(e){ currentUser = null }
+  }
+  if(currentUser){
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('userText').innerText = '👤 ' + currentUser.username;
+    loadServers();
+  }
+}
+initFromSession();
+
+/* Registro */
+async function registerWithPassword(){
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  if(!username) return Swal.fire({icon:'warning',title:'Escribe nombre'});
+  if(!password) return Swal.fire({icon:'warning',title:'La contraseña es obligatoria'});
+  const pw_hash = await sha256(password);
+  const { data: existing } = await sb.from('users').select('*').eq('username', username).maybeSingle();
+  if(existing) return Swal.fire({icon:'error',title:'Usuario ya existe',text:'Prueba iniciar sesión'});
+  const { data, error } = await sb.from('users').insert({ username, password_hash: pw_hash }).select('*').single();
+  if(error) { console.error(error); return Swal.fire({icon:'error',title:'Error al crear usuario',text: error.message||JSON.stringify(error)}); }
+  currentUser = { id: data.id, username: data.username };
+  sessionStorage.setItem('mt_user', JSON.stringify(currentUser));
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('userText').innerText = '👤 ' + currentUser.username;
+  loadServers();
+}
+
+/* Login */
+async function login(){
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  if(!username) return Swal.fire({icon:'warning',title:'Escribe nombre'});
+  if(!password) return Swal.fire({icon:'warning',title:'La contraseña es obligatoria'});
+  const { data } = await sb.from('users').select('*').eq('username', username).maybeSingle();
+  if(!data){
+    return Swal.fire({icon:'error',title:'Usuario no existe',text:'Regístrate primero'});
+  } else {
+    if(!data.password_hash){
+      return Swal.fire({icon:'error',title:'Cuenta insegura',text:'Esta cuenta no tiene contraseña, regístrate en su lugar'});
+    }
+    const h = await sha256(password);
+    if(h !== data.password_hash) return Swal.fire({icon:'error',title:'Contraseña incorrecta'});
+    currentUser = { id: data.id, username: data.username };
+  }
+  sessionStorage.setItem('mt_user', JSON.stringify(currentUser));
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('userText').innerText = '👤 ' + currentUser.username;
+  loadServers();
+}
+
+function logout(){
+  sessionStorage.removeItem('mt_user');
+  currentUser = null; currentServer = null;
+  if(messageChannel) messageChannel.unsubscribe();
+  document.getElementById('chatBox').innerHTML = '';
+  document.getElementById('servers').innerHTML = '';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+/* Servidores */
+async function createServer(){
+  if(!currentUser) return Swal.fire({icon:'warning',title:'Inicia sesión'});
+  const name = prompt('Nombre del servidor');
+  const password = prompt('Contraseña para entrar (se guardará segura)');
+  if(!name) return;
+  const pw_hash = password ? await sha256(password) : null;
+  const code = Math.random().toString(36).slice(2,8).toUpperCase();
+  const { data, error } = await sb.from('servers').insert({ name, code, password_hash: pw_hash, owner_id: currentUser.id }).select('*').single();
+  if(error){ console.error('createServer error', error); return Swal.fire({icon:'error',title:'Error creando servidor',text: error.message||JSON.stringify(error)}); }
+  // agregar membership para el creador
+  const { error: mErr } = await sb.from('memberships').upsert({ user_id: currentUser.id, server_id: data.id }, { onConflict: ['user_id','server_id'] });
+  if(mErr) console.error('membership upsert error', mErr);
+  await loadServers();
+  Swal.fire({icon:'success',title:'Servidor creado',text:'Código: '+code});
+}
+async function loadServers(){
+  if(!currentUser) return;
+  // mostrará solo servidores donde el usuario es miembro
+  const { data, error } = await sb.from('memberships').select('servers(id,name,code,created_at)').eq('user_id', currentUser.id);
+  if(error){ console.error('loadServers error', error); return Swal.fire({icon:'error',title:'Error cargando servidores',text: error.message||JSON.stringify(error)}); }
+  const box = document.getElementById('servers'); box.innerHTML = '';
+  (data||[]).forEach(m=>{
+    const s = m.servers || m.server || m; // compatibilidad
+    if(!s) return;
+    const div = document.createElement('div'); div.className = 'server';
+    div.innerHTML = `<div>${s.name}</div><small>Código: ${s.code}</small>`;
+    div.onclick = ()=> { joinDirect(s.id, s.name); };
+    box.appendChild(div);
+  });
+}
+
+async function joinServer(){
+  const code = prompt('Código servidor'); if(!code) return; // busca por código
+  const password = prompt('Contraseña del servidor (si tiene)');
+  const { data, error } = await sb.from('servers').select('*').eq('code', code).maybeSingle();
+  if(error){ console.error('joinServer error', error); return Swal.fire({icon:'error',title:'Error buscando servidor',text: error.message||JSON.stringify(error)}); }
+  if(!data) return Swal.fire({icon:'error',title:'Servidor no encontrado'});
+  if(data.password_hash){ const h = password ? await sha256(password) : null; if(h !== data.password_hash) return Swal.fire({icon:'error',title:'Contraseña incorrecta'}); }
+  // crear membership
+  const { error: mErr } = await sb.from('memberships').upsert({ user_id: currentUser.id, server_id: data.id }, { onConflict: ['user_id','server_id'] });
+  if(mErr){ console.error('membership upsert error', mErr); return Swal.fire({icon:'error',title:'Error uniéndote al servidor',text: mErr.message||JSON.stringify(mErr)}); }
+  await loadServers();
+  Swal.fire({icon:'success',title:'Te uniste al servidor',text: data.name});
+}
+
+async function joinPrompt(serverId, serverName){
+  const password = prompt('Contraseña del servidor (si tiene)');
+  const { data, error } = await sb.from('servers').select('*').eq('id', serverId).maybeSingle();
+  if(error){ console.error('joinPrompt lookup error', error); return Swal.fire({icon:'error',title:'Error buscando servidor',text: error.message||JSON.stringify(error)}); }
+  if(!data) return Swal.fire({icon:'error',title:'Servidor no encontrado'});
+  if(data.password_hash){ const h = password ? await sha256(password) : null; if(h !== data.password_hash) return Swal.fire({icon:'error',title:'Contraseña incorrecta'}); }
+  const { error: upsertErr } = await sb.from('memberships').upsert({ user_id: currentUser.id, server_id: serverId }, { onConflict: ['user_id','server_id'] });
+  if(upsertErr) { console.error('membership upsert error', upsertErr); }
+  joinDirect(serverId, serverName);
+}
+
+async function joinDirect(serverId, serverName){
+  currentServer = { id: serverId, name: serverName };
+  document.getElementById('serverTitle').innerText = '💬 ' + serverName;
+  // ensure a persistent channel exists (listen global INSERTs, filter client-side)
+  ensureMessageChannel();
+  loadMessages();
+}
+
+function ensureMessageChannel(){
+  try{
+    if(messageChannel) return; // already exists
+    messageChannel = sb.channel('public:messages');
+    messageChannel.on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, payload => {
+      console.log('realtime payload:', payload);
+      const msg = payload.new;
+      // compare loosely to avoid type mismatch
+      if(currentServer && String(msg.server_id) == String(currentServer.id)){
+        appendMessage(msg);
+      }
+    });
+    messageChannel.on('postgres_changes', { event:'DELETE', schema:'public', table:'typing' }, ()=>{} );
+    messageChannel.subscribe();
+    // monitor connection and try to recreate if closed
+    // supabase-js channels don't expose a direct 'state' event here; use periodic check
+    setTimeout(()=>{
+      if(!messageChannel || messageChannel._state === 'CLOSED'){
+        console.warn('messageChannel closed, recreating');
+        messageChannel = null; ensureMessageChannel();
+      }
+    }, 3000);
+  }catch(e){ console.error('ensureMessageChannel error', e); }
+}
+
+function appendMessage(msg){
+  const box = document.getElementById('chatBox');
+  const div = renderMessage(msg);
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderMessage(msg, reactionsMap){
+  const div = document.createElement('div'); div.className = 'msg';
+  const userLine = document.createElement('div'); userLine.className = 'msg-user'; userLine.innerText = msg.username;
+  const contentLine = document.createElement('div'); contentLine.innerHTML = escapeHtml(msg.content);
+  // link preview: detect first url
+  const url = extractFirstUrl(msg.content);
+  let preview = null;
+  if(url){
+    preview = document.createElement('div'); preview.className = 'preview-card';
+    preview.innerHTML = `<div class="meta"><div style="font-weight:700;color:var(--text_dos)">${new URL(url).hostname}</div><div style="color:var(--text_apa);font-size:13px">${url}</div></div>`;
+  }
+  const time = document.createElement('div'); time.className = 'msg-time'; time.innerText = new Date(msg.created_at).toLocaleTimeString();
+  // reactions
+  const reactBox = document.createElement('div'); reactBox.className = 'reactions';
+  ['👍','❤️'].forEach(emoji => {
+    const btn = document.createElement('div'); btn.className = 'reaction'; btn.innerText = emoji + ' ' + (reactionsMap && reactionsMap[msg.id] && reactionsMap[msg.id][emoji] ? reactionsMap[msg.id][emoji] : '');
+    btn.onclick = ()=> toggleReaction(msg.id, emoji, btn);
+    reactBox.appendChild(btn);
+  });
+  div.appendChild(userLine);
+  div.appendChild(contentLine);
+  if(preview) div.appendChild(preview);
+  div.appendChild(reactBox);
+  div.appendChild(time);
+  return div;
+}
+
+function escapeHtml(text){
+  if(!text) return '';
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function extractFirstUrl(text){
+  if(!text) return null;
+  const re = /(https?:\/\/[\w\-\.\/?=&#%+~,:;@!$'()*+]+)/i;
+  const m = text.match(re);
+  return m ? m[0] : null;
+}
+
+async function loadMessages(){
+  if(!currentServer) return;
+  const { data } = await sb.from('messages').select('*').eq('server_id', currentServer.id).order('created_at', { ascending: true });
+  const box = document.getElementById('chatBox'); box.innerHTML = '';
+  const msgs = data || [];
+  const ids = msgs.map(m=>m.id).filter(Boolean);
+  let reactionsMap = {};
+  if(ids.length){
+    const { data: reacts } = await sb.from('reactions').select('*').in('message_id', ids);
+    (reacts||[]).forEach(r => {
+      reactionsMap[r.message_id] = reactionsMap[r.message_id]||{};
+      reactionsMap[r.message_id][r.emoji] = (reactionsMap[r.message_id][r.emoji]||0) + 1;
+    });
+  }
+  msgs.forEach(m=>{ box.appendChild(renderMessage(m, reactionsMap)); });
+}
+
+async function sendMessage(){
+  if(!currentUser) return Swal.fire({icon:'warning',title:'Login requerido'});
+  if(!currentServer) return Swal.fire({icon:'warning',title:'Únete a un servidor'});
+  const input = document.getElementById('messageInput'); const content = input.value.trim(); if(!content) return;
+  const { data, error } = await sb.from('messages').insert({ server_id: currentServer.id, user_id: currentUser.id, username: currentUser.username, content });
+  if(error){ console.error('sendMessage error', error); return Swal.fire({icon:'error',title:'Error enviando mensaje',text: error.message||JSON.stringify(error)}); }
+  input.value = '';
+  // notify typing stop
+  setTyping(false);
+}
+
+function enterSend(e){ if(e.key === 'Enter') sendMessage(); }
+
+async function uploadFile(inputElem){
+  const file = inputElem.files[0]; if(!file) return;
+  if(!currentUser || !currentServer) return Swal.fire({icon:'warning',title:'Únete a un servidor antes de subir archivos'});
+  const path = `${currentServer.id}/${Date.now()}_${file.name}`;
+  const { data, error } = await sb.storage.from('chat-files').upload(path, file);
+  if(error){
+    console.error('uploadFile storage error', error);
+    const msg = (error && error.message) ? error.message.toLowerCase() : '';
+    if(msg.includes('row-level security') || msg.includes('violates row-level security')){
+      return Swal.fire({icon:'error',title:'Error subiendo (RLS)',text:'La subida falló por políticas RLS en Storage. Ajusta la política del bucket o usa una función server-side con service-role.'});
+    }
+    return Swal.fire({icon:'error',title:'Error subiendo',text: error.message||JSON.stringify(error)});
+  }
+  const url = sb.storage.from('chat-files').getPublicUrl(path).publicURL;
+  const { data: fileData, error: fileErr } = await sb.from('files').insert({ server_id: currentServer.id, user_id: currentUser.id, filename: file.name, url });
+  if(fileErr){
+    console.error('uploadFile db error', fileErr);
+    const msg = (fileErr && fileErr.message) ? fileErr.message.toLowerCase() : '';
+    if(msg.includes('row-level security') || msg.includes('violates row-level security')){
+      return Swal.fire({icon:'error',title:'Error registrando archivo (RLS)',text:'La inserción en la tabla `files` falló por políticas RLS. Ajusta las políticas en Supabase o usa una función server-side con service-role.'});
+    }
+    return Swal.fire({icon:'error',title:'Error registrando archivo',text: fileErr.message||JSON.stringify(fileErr)});
+  }
+  Swal.fire({icon:'success',title:'Archivo subido',text: file.name});
+}
+
+/* Reactions */
+async function toggleReaction(message_id, emoji, btn){
+  if(!currentUser) return Swal.fire({icon:'warning',title:'Login requerido'});
+  try{
+    const { data: existing } = await sb.from('reactions').select('*').match({ message_id, user_id: currentUser.id, emoji }).maybeSingle();
+    if(existing){
+      await sb.from('reactions').delete().match({ id: existing.id });
+      // decrement visually
+      btn.innerText = emoji + ' ' + (parseInt(btn.innerText.split(' ')[1]||'0') - 1 || '');
+    } else {
+      await sb.from('reactions').insert({ message_id, user_id: currentUser.id, emoji });
+      btn.innerText = emoji + ' ' + (parseInt(btn.innerText.split(' ')[1]||'0') + 1);
+    }
+  }catch(e){ console.error('toggleReaction error', e); }
+}
+
+/* Typing indicator */
+document.getElementById('messageInput').addEventListener('input', ()=>{
+  setTyping(true);
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=> setTyping(false), 2200);
+});
+
+async function setTyping(on){
+  if(!currentUser || !currentServer) return;
+  if(on && !typingState){
+    typingState = true;
+    try{ await sb.from('typing').upsert({ server_id: currentServer.id, user_id: currentUser.id, username: currentUser.username }, { onConflict: ['server_id','user_id'] }); }
+    catch(e){
+      console.error('typing upsert', e);
+      Swal.fire({icon:'error',title:'Error de typing',text:'No se pudo actualizar el estado de "escribiendo". Revisa las políticas RLS en la tabla `typing` en Supabase.'});
+    }
+  }
+  if(!on && typingState){
+    typingState = false;
+    try{ await sb.from('typing').delete().match({ server_id: currentServer.id, user_id: currentUser.id }); }
+    catch(e){ console.error('typing delete', e); }
+  }
+}
+
+// poll typing rows for current server
+setInterval(async ()=>{
+  if(!currentServer) return;
+  try{
+    const { data } = await sb.from('typing').select('username,user_id').eq('server_id', currentServer.id);
+    const others = (data||[]).filter(t => t.user_id !== (currentUser && currentUser.id));
+    const el = document.getElementById('typingIndicator');
+    if(others.length === 0) el.innerText = '';
+    else if(others.length === 1) el.innerText = `${others[0].username} está escribiendo...`;
+    else el.innerText = `${others[0].username} y ${others.length-1} más están escribiendo...`;
+  }catch(e){ /* ignore */ }
+}, 2000);
+
+</script>
+</body>
+</html>
